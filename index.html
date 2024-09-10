@@ -6,6 +6,8 @@
     <title>ForeGround Color Picker</title>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="./assets/css/styles.css">
+    <link rel="stylesheet" href="./assets/css/custom-color-picker.css">
+    <script src="./assets/js/custom-color-picker.js"></script>
     <script type="module" src="./assets/js/main.js"></script>
 </head>
 <body>
@@ -14,7 +16,12 @@
         Pick the color below to change the background color
         and automatically generate the text color.
     </p>
-    <input type="color" name="background_color" id="background_color">
+
+    <div id="color-picker">
+        <canvas id="canvas_color-picker" width="300px" height="300px"></canvas>
+    </div>
+
+    <input type="color" name="background_color" id="background_color" hidden>
 
     <div>
         <br/>
@@ -32,13 +39,6 @@
         &nbsp;
         <button onclick="copyText('text_color_txt')">Copy Text</button>
         
-    </div>
-
-    <div>
-        <h2>Or using other color picker?</h2>
-        <p>
-            <div><a href="./rgb-color-picker.html">Use RGB Color Picker</a></div>
-        </p>
     </div>
 </body>
 </html>
