@@ -602,6 +602,52 @@
 
         setColor(options.defaultColor);
     }
+    /**
+     * @constructor
+     * @param {Object} options 
+     * @returns {Popup}
+     */
+    function Popup(options) {
+        if(!(this instanceof Popup))return new Popup(options);
+        const $this = this;
+
+        const colorPickerParentEl = document.createElement('div');
+        colorPickerParentEl.style.position = 'absolute';
+        colorPickerParentEl.style.top = '-9999px';
+        colorPickerParentEl.style.left = '-9999px';
+        colorPickerParentEl.classList.add('popup');
+        const colorPicker = new ColorPicker(colorPickerParentEl, options);
+        this.getColorPicker = function() {
+            return colorPicker;
+        }
+        /**
+         * 
+         * @param {(parentel:HTMLElement) => void} callback
+         */
+        function open(callback) {
+            document.addEventListener('mousedown',HandleClickMain,true);
+            document.body.appendChild(colorPickerParentEl);
+            colorPickerParentEl.style.top = '-9999px';
+            colorPickerParentEl.style.left = '-9999px';
+            callback(colorPickerParentEl);
+        }
+        this.open = open;
+        function close() {
+            document.removeEventListener('mousedown',HandleClickMain, true);
+            colorPickerParentEl.style.top = '-9999px';
+            colorPickerParentEl.style.left = '-9999px';
+            colorPickerParentEl.remove();
+        }
+        this.close = close;
+
+        function HandleClickMain(event) {
+            let node = event.target;
+            while(node.parentNode && node !== colorPickerParentEl)node = node.parentNode;
+            if(node !== colorPickerParentEl){
+                close();
+            }
+        }
+    }
     const defaultOptions = {
         size: 300,
         ratio: 6 / 1,
@@ -610,6 +656,7 @@
     }
 
     ColorPicker.Formula = Formula;
+    ColorPicker.Popup = Popup;
 
     window.CustomColorPicker = ColorPicker;
 })()

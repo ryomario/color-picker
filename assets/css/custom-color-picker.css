@@ -9,6 +9,9 @@
     overflow: visible;
     box-shadow: 3px 3px 5px #0005;
 }
+.color-picker.popup {
+    margin: 0 !important;
+}
 .color-picker-box {
     display: block;
     position: relative;

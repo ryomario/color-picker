@@ -22,9 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     // Custom Color Picker
     const targetColorInput = this.getElementById('background_color');
-    const canvas = this.getElementById('color-picker');
-    if(!canvas)return
-    const colorPicker = new CustomColorPicker(canvas, {
+    
+    const colorPicker = new CustomColorPicker(this.getElementById('color-picker'), {
         defaultColor: initColorHex
     });
     colorPicker.addEventListener('change-color',function(color) {
@@ -32,4 +31,30 @@ document.addEventListener('DOMContentLoaded', function() {
         onInput();
     });
     colorPicker.setColor('#56baed');
+
+    const button = this.getElementById('color-picker-button');
+    const colorPickerPopup = new CustomColorPicker.Popup({
+        defaultColor: initColorHex
+    });
+    colorPickerPopup.getColorPicker().addEventListener('change-color',function(color) {
+        const bg = Formula.hex2rgb(color);
+
+        const is_color_light = Formula.isLightColor(bg);
+
+        let fg = '#ffffff';
+        if(is_color_light) {
+            fg = '#000000';
+        }
+        button.style.color = fg;
+        button.style.backgroundColor = Formula.rgb2hex(bg);
+    });
+    button.addEventListener('click',function(event) {
+        colorPickerPopup.open(el => {
+            let x = button.offsetLeft;
+            let y = button.offsetTop - el.offsetHeight;
+
+            el.style.top = y + 'px';
+            el.style.left = x + 'px';
+        })
+    });
 })
