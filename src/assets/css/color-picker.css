@@ -1,0 +1,203 @@
+.color-picker-container, .color-picker-container * {
+    box-sizing: border-box;
+}
+.color-picker-container {
+    --size: 300px;
+    --pointer-size: calc(var(--size) / 15);
+    --color: #f00;
+    --color-with-alpha: #f00;
+    --colorhue: #f00;
+    --checker-size: calc(var(--size) / 25);
+    display: block;
+    padding: calc(var(--pointer-size) / 2);
+}
+.color-picker-box {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border-radius: calc(var(--pointer-size) / 2);
+    user-select: none;
+    overflow: visible;
+    box-shadow: 0 0 5px #0005;
+    width: var(--size);
+}
+.color-picker-colorbox {
+    display: block;
+    position: relative;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+    width: 100%;
+    height: calc(var(--size) / 2);
+    background-image: linear-gradient(to top, #000, #0000), linear-gradient(to left, var(--colorhue), #fff);
+}
+.color-picker-pointer {
+    display: block;
+    position: absolute;
+    border-radius: 50%;
+    width: var(--pointer-size);
+    height: var(--pointer-size);
+    background-color: var(--color);
+    border: calc(var(--pointer-size) / 10) solid #000;
+    box-sizing: border-box;
+    top: 0;
+    left: 0;
+    will-change: top, left;
+    transform: translate(-50%,-50%);
+    box-shadow: 1px 1px 3px #0007;
+}
+.color-picker-pointer.white {
+    border-color: #fff;
+}
+.color-picker-toolbox {
+    display: block;
+    padding: calc(var(--pointer-size) / 2);
+    height: calc(var(--size) / 2);
+}
+.color-picker-toolbox-top,
+.color-picker-toolbox-bot {
+    height: 50%;
+    display: flex;
+    align-items: center;
+}
+.color-picker-sliders-container {
+    flex-grow: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    padding-inline: calc(var(--pointer-size) / 2);
+}
+.color-picker-hueslider-track,
+.color-picker-alphaslider-track {
+    display: block;
+    width: 100%;
+    height: calc(var(--pointer-size) * 2 / 3);
+    background-image: linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%));
+    border-radius: calc(var(--pointer-size) / 6);
+    position: relative;
+}
+.color-picker-alphaslider-track {
+    background: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: var(--checker-size) var(--checker-size);
+    background-position: 0 0, 0 calc(var(--checker-size) / 2), calc(var(--checker-size) / 2) calc(var(--checker-size) / -2), calc(var(--checker-size) / -2) 0px; 
+    position: relative;
+}
+.color-picker-alphaslider-track::before {
+    position: absolute;
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(to right, rgba(0,0,0,0), var(--color));
+    border-radius: inherit;
+}
+.color-picker-hueslider-track .color-picker-pointer,
+.color-picker-alphaslider-track .color-picker-pointer {
+    background-color: #f5f5f5;
+    border: 0;
+    top: 50%;
+    left: 100%;
+    will-change: left;
+}
+.color-picker-colorpreview-container {
+    padding: calc(var(--pointer-size) / 2);
+}
+.color-picker-colorpreview {
+    width: calc(var(--pointer-size) * 2);
+    height: calc(var(--pointer-size) * 2);
+    
+    background: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: var(--checker-size) var(--checker-size);
+    background-position: 0 0, 0 calc(var(--checker-size) / 2), calc(var(--checker-size) / 2) calc(var(--checker-size) / -2), calc(var(--checker-size) / -2) 0px; 
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+}
+.color-picker-colorpreview::before,
+.color-picker-colorpreview::after {
+    position: absolute;
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.color-picker-colorpreview::before {
+    background-color: var(--color-with-alpha);
+}
+.color-picker-colorpreview::after {
+    background-color: #0005;
+    background-image: url('../icons/copy.svg');
+    background-size: 50% 50%;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    cursor: pointer;
+    display: none;
+}
+.color-picker-colorpreview:hover::after {
+    display: block;
+}
+
+.color-picker-result-container {
+    flex-grow: 1;
+    display: flex;
+    height: 100%;
+    align-items: center;
+    margin-right: calc(var(--size)/30);
+}
+.color-picker-inputfield,
+.color-picker-inputfield input {
+    width: 100%;
+    text-align: center;
+    font-size: calc(var(--size)/25);
+    outline: none;
+    font-family: 'Courier New', Courier ,monospace;
+}
+.color-picker-inputfield {
+    display: flex;
+    flex-direction: column;
+}
+.color-picker-inputfield::after {
+    content: attr(data-label);
+    opacity: 0.3;
+    margin-top: 0.75em;
+}
+.color-picker-inputfield input {
+    padding: 0.5em;
+    border: 1px solid #0002;
+    border-radius: 0.25em;
+}
+.color-picker-inputfield input:hover {
+    background-color: #0000000a;
+}
+.color-picker-inputfield input:focus {
+    border-color: #00f;
+}
+.color-picker-result-changeformat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(var(--size)/60);
+    border-radius: calc(var(--size)/120);
+}
+.color-picker-result-changeformat:hover {
+    background-color: #0002;
+}
+.color-picker-result-changeformat::before,
+.color-picker-result-changeformat::after {
+    content: '';
+    display: block;
+    box-sizing: border-box;
+    width: calc(var(--size)/60);
+    height: calc(var(--size)/60);
+    border: calc(var(--size)/240) solid;
+    border-top-width: 0;
+    border-left-width: 0;
+}
+.color-picker-result-changeformat::before {
+    transform: rotate(-135deg);
+}
+.color-picker-result-changeformat::after {
+    transform: rotate(45deg);
+}
