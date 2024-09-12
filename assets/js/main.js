@@ -1,3 +1,4 @@
+import ColorPicker from './color-picker.min.mjs';
 import { copyText, hex2rgb, rgbToHex, getCSSColorRGB, getRelativeLuminance } from './tools.js';
 window.copyText = copyText;
 
@@ -61,5 +62,16 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('input', onInputRange);
 
         onInputRange();
+    })
+
+    // Custom Color Picker
+    const colorPicker = new ColorPicker(document.getElementById('color-picker'),{
+        width: 300,
+        defaultColor: initColorHex,
+    });
+    colorPicker.addEventListener('change.color.rgba',function(rgba) {
+        let hex = rgbToHex({r:rgba.r.toFixed(0),g:rgba.g.toFixed(0),b:rgba.b.toFixed(0)});
+        inputBGColor.value = hex;
+        onInput();
     })
 })
