@@ -134,6 +134,9 @@
     cursor: pointer;
     display: none;
 }
+.color-picker-colorpreview.copied::after {
+    background-image: url('../icons/check.svg');
+}
 .color-picker-container:not(.dragging) .color-picker-colorpreview:hover::after {
     display: block;
 }

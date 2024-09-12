@@ -5,7 +5,7 @@
  */
 
 import ClassWithListener from "./base/ClassWithListener";
-import { hex2rgb, hsv2rgb, rgb2hex, rgb2hsv } from "./tools/colors";
+import { hex2rgb, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv } from "./tools/colors";
 import { rAFThrottle } from "./tools/webAnimation";
 
 /**
@@ -32,21 +32,43 @@ function init($this, options) {
         result_container: document.createElement('div'),
         result_changeformat: document.createElement('div'),
 
-        input_hex: createInput('HEX','#f00',(e) => {console.log('change',e.currentTarget.value)}),
+        input_hex: createInputHex(),
     }
     function createInput(label,value,onChange) {
         const container = document.createElement('div');
         const input = document.createElement('input');
+        input.setAttribute('name',Date.now());
         container.classList.add('color-picker-inputfield');
         input.setAttribute('spellcheck','false');
         container.dataset.label = label;
         input.value = value;
         container.appendChild(input);
+
+        input.addEventListener('input',onChange);
+        return [container, input];
+    }
+    function createInputHex() {
+        let changedFromInput = false;
+        const [container, input] = createInput('HEX',options.defaultColor,(e) => {
+            /**
+             * @type {string}
+             */
+            let hexValue = e.currentTarget.value;
+            hexValue = hexValue.trim();
+            if(!isValidHexColor(hexValue))return
+
+            changedFromInput = true;
+            $this.setColor(hexValue);
+        });
+
         $this.addEventListener('change.color.rgba',function({r,g,b,a}) {
+            if(changedFromInput){
+                changedFromInput = false;
+                return;
+            }
             input.value = rgb2hex({r,g,b,a},a == 1);
         });
 
-        input.addEventListener('input',onChange);
         return container;
     }
 
@@ -98,8 +120,9 @@ function init($this, options) {
         let rgb = $this.getColorFromSelectedPointer();
         let alpha = $this.alphaPos;
         let color = rgb2hex(rgb,false);
-        console.log(color);
         let colorWithAlpha = rgb2hex({...rgb,a:alpha});
+        if(isLightColor(rgb))elems.colorbox_pointer.classList.remove('white');
+        else elems.colorbox_pointer.classList.add('white');
         $this.root.style.setProperty('--color',color);
         $this.root.style.setProperty('--color-with-alpha',colorWithAlpha);
         $this.dispatchEvent('change.color.rgba',{...rgb,a: alpha});
@@ -321,8 +344,49 @@ function init($this, options) {
     HandleCursor = rAFThrottle(HandleCursor);
     document.addEventListener('mousemove', HandleCursor);
 
+    /**
+     * 
+     * @param {MouseEvent} event 
+     */
+    function HandleCopyResult(event) {
+        if(elems.color_preview.classList.contains('copied'))return;
+
+        let rgb = $this.getColorFromSelectedPointer();
+        let alpha = $this.alphaPos;
+        let color = rgb2hex({...rgb,a:alpha},alpha == 1);
+        copyText(color,(copied) => {
+            if(!copied){
+                alert('Failed to copy!');
+                return;
+            }
+
+            elems.color_preview.classList.add('copied');
+
+            setTimeout(() => {
+                elems.color_preview.classList.remove('copied');
+            }, 1500);
+        });
+    }
+    elems.color_preview.addEventListener('click',HandleCopyResult);
+
     
     $this.dispatchEvent('view.update.elems');
+}
+
+/**
+ * 
+ * @param {string} text 
+ * @param {(copied: boolean)=>void} callback 
+ */
+async function copyText(text, callback) {
+    try {
+        let result = await navigator.permissions.query({ name: 'clipboard-write' });
+        if(result.state != 'prompt' && result.state != 'granted')throw new Error('No Permission');
+        await navigator.clipboard.writeText(text);
+        callback(true);
+    } catch (error) {
+        callback(false);
+    }
 }
 
 export default class ColorPicker extends ClassWithListener {
@@ -422,17 +486,19 @@ export default class ColorPicker extends ClassWithListener {
 
     /**
      * App - Change color & update view & trigger event `change-color`
-     * @param {string} hexColor - color in HEX Format
+     * @param {string} hexColor - color in HEX Format (auto fixed format)
      */
     setColor(hexColor) {
         const rgb = hex2rgb(hexColor);
         const { h, s, v } = rgb2hsv(rgb);
+        const a = rgb.a;
         
         this.colorPos = {
             x: s,
             y: 1 - v
         };
         this.huePos = h;
+        this.alphaPos = a;
 
         // update view
         this.dispatchEvent('update.view');
