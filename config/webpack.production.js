@@ -35,11 +35,17 @@ module.exports = {
     entry: {
         "color-picker": "./src/color-picker.js",
         "color-picker.min": "./src/color-picker.js",
+        "color-picker-style": "./src/assets/css/color-picker.css",
+        "color-picker-style.min": "./src/assets/css/color-picker.css",
+    },
+    experiments: {
+        outputModule: true,
     },
     output: {
         publicPath: "/",
         path: path.resolve(__dirname,"../build"),
-        libraryTarget: 'umd',
+        module: true,
+        libraryTarget: 'module',
         clean: true,
     },
 
