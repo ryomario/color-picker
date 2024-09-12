@@ -134,6 +134,9 @@
     cursor: pointer;
     display: none;
 }
+.color-picker-container.dragging .color-picker-colorpreview::after {
+    display: none;
+}
 .color-picker-colorpreview:hover::after {
     display: block;
 }

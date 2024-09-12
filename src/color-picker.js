@@ -6,6 +6,7 @@
 
 import ClassWithListener from "./base/ClassWithListener";
 import { hex2rgb, hsv2rgb, rgb2hex, rgb2hsv } from "./tools/colors";
+import { rAFThrottle } from "./tools/webAnimation";
 
 /**
  * 
@@ -183,7 +184,16 @@ function init($this, options) {
      * Internal use only
      * @type {boolean}
      */
-    let dragging = false;
+    let _dragging = false;
+    const isDraging = () => _dragging;
+    function setDragging(val) {
+        _dragging = Boolean(val);
+        if(_dragging){
+            $this.root.classList.add('dragging');
+        }else{
+            $this.root.classList.remove('dragging');
+        }
+    }
 
     /**
      * View + system - Handle box pointer move
@@ -191,18 +201,18 @@ function init($this, options) {
      */
     function HandlePointer(event) {
         if(event.type === 'mousedown'){
-            dragging = true;
+            setDragging(true);
             document.documentElement.style.setProperty('cursor','move','important');
             document.addEventListener('mousemove',HandlePointer);
             document.addEventListener('mouseup', HandlePointer);
         }
         if(event.type === 'mouseup'){
-            dragging = false;
+            setDragging(false);
             document.documentElement.style.cursor = '';
             document.removeEventListener('mousemove',HandlePointer);
             document.removeEventListener('mouseup', HandlePointer);
         }
-        if(event.type === 'mousemove' && !dragging)return;
+        if(event.type === 'mousemove' && !isDraging())return;
         let rect = elems.colorbox.getBoundingClientRect();
         let x = event.clientX - rect.left;
         let y = event.clientY - rect.top;
@@ -210,6 +220,7 @@ function init($this, options) {
         y = y / elems.colorbox.offsetHeight;
         updateColorBoxPointer({x,y})
     }
+    HandlePointer = rAFThrottle(HandlePointer);
     elems.colorbox.addEventListener('mousedown', HandlePointer);
 
     /**
@@ -218,23 +229,24 @@ function init($this, options) {
      */
     function HandleHueSlider(event) {
         if(event.type === 'mousedown'){
-            dragging = true;
+            setDragging(true);
             document.documentElement.style.setProperty('cursor','ew-resize','important');
             document.addEventListener('mousemove',HandleHueSlider);
             document.addEventListener('mouseup', HandleHueSlider);
         }
         if(event.type === 'mouseup'){
-            dragging = false;
+            setDragging(false);
             document.documentElement.style.cursor = '';
             document.removeEventListener('mousemove',HandleHueSlider);
             document.removeEventListener('mouseup', HandleHueSlider);
         }
-        if(event.type === 'mousemove' && !dragging)return;
+        if(event.type === 'mousemove' && !isDraging())return;
         let rect = elems.hue_slider_track.getBoundingClientRect();
         let x = event.clientX - rect.left;
         x = x / elems.hue_slider_track.offsetWidth;
         updateHueSliderPointer(x);
     }
+    HandleHueSlider = rAFThrottle(HandleHueSlider);
     elems.hue_slider_track.addEventListener('mousedown', HandleHueSlider);
 
     /**
@@ -243,23 +255,24 @@ function init($this, options) {
      */
     function HandleAlphaSlider(event) {
         if(event.type === 'mousedown'){
-            dragging = true;
+            setDragging(true);
             document.documentElement.style.setProperty('cursor','ew-resize','important');
             document.addEventListener('mousemove',HandleAlphaSlider);
             document.addEventListener('mouseup', HandleAlphaSlider);
         }
         if(event.type === 'mouseup'){
-            dragging = false;
+            setDragging(false);
             document.documentElement.style.cursor = '';
             document.removeEventListener('mousemove',HandleAlphaSlider);
             document.removeEventListener('mouseup', HandleAlphaSlider);
         }
-        if(event.type === 'mousemove' && !dragging)return;
+        if(event.type === 'mousemove' && !isDraging())return;
         let rect = elems.alpha_slider_track.getBoundingClientRect();
         let x = event.clientX - rect.left;
         x = x / elems.alpha_slider_track.offsetWidth;
         updateAlphaSliderPointer(x);
     }
+    HandleAlphaSlider = rAFThrottle(HandleAlphaSlider);
     elems.alpha_slider_track.addEventListener('mousedown', HandleAlphaSlider);
 
     /**
@@ -272,7 +285,7 @@ function init($this, options) {
         let x = event.clientX - rect.left;
         let y = event.clientY - rect.top;
 
-        if(dragging){
+        if(isDraging()){
             elems.colorbox.style.cursor = '';
             elems.hue_slider_track.style.cursor = '';
             elems.alpha_slider_track.style.cursor = '';
@@ -305,6 +318,7 @@ function init($this, options) {
             elems.alpha_slider_track.style.cursor = 'crosshair';
         }
     }
+    HandleCursor = rAFThrottle(HandleCursor);
     document.addEventListener('mousemove', HandleCursor);
 
     
