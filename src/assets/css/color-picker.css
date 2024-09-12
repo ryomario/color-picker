@@ -134,10 +134,7 @@
     cursor: pointer;
     display: none;
 }
-.color-picker-container.dragging .color-picker-colorpreview::after {
-    display: none;
-}
-.color-picker-colorpreview:hover::after {
+.color-picker-container:not(.dragging) .color-picker-colorpreview:hover::after {
     display: block;
 }
 
@@ -169,8 +166,9 @@
     padding: 0.5em;
     border: 1px solid #0002;
     border-radius: 0.25em;
+    cursor: inherit;
 }
-.color-picker-inputfield input:hover {
+.color-picker-container:not(.dragging) .color-picker-inputfield input:hover {
     background-color: #0000000a;
 }
 .color-picker-inputfield input:focus {
@@ -184,7 +182,7 @@
     padding: calc(var(--size)/60);
     border-radius: calc(var(--size)/120);
 }
-.color-picker-result-changeformat:hover {
+.color-picker-container:not(.dragging) .color-picker-result-changeformat:hover {
     background-color: #0002;
 }
 .color-picker-result-changeformat::before,
