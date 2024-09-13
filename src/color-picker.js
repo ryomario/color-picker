@@ -6,7 +6,7 @@
 
 import ClassWithListener from "./base/ClassWithListener";
 import { hex2rgb, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv } from "./tools/colors";
-import { rAFThrottle } from "./tools/webAnimation";
+import { handleDragElement, rAFThrottle } from "./tools/webAnimation";
 
 /**
  * 
@@ -218,86 +218,89 @@ function init($this, options) {
         }
     }
 
-    /**
-     * View + system - Handle box pointer move
-     * @param {MouseEvent} event 
-     */
-    function HandlePointer(event) {
-        if(event.type === 'mousedown'){
+    handleDragElement(elems.colorbox_pointer,elems.colorbox,{
+        onstart: (event) => {
             setDragging(true);
             document.documentElement.style.setProperty('cursor','move','important');
-            document.addEventListener('mousemove',HandlePointer);
-            document.addEventListener('mouseup', HandlePointer);
-        }
-        if(event.type === 'mouseup'){
+            if(event instanceof TouchEvent)document.documentElement.style.setProperty('overflow','hidden');
+        },
+        onend: (event) => {
             setDragging(false);
+            document.documentElement.style.setProperty('overflow','auto');
             document.documentElement.style.cursor = '';
-            document.removeEventListener('mousemove',HandlePointer);
-            document.removeEventListener('mouseup', HandlePointer);
+        },
+        ondefault: (event) => {
+            if(!isDraging())return false;
+            if(event instanceof TouchEvent){
+                if(!event.cancelable || event.targetTouches.length != 1)return false;
+                event.preventDefault();
+                event.stopPropagation();
+                event.clientX = event.targetTouches[0].clientX;
+                event.clientY = event.targetTouches[0].clientY;
+            }
+            let rect = elems.colorbox.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+            x = x / elems.colorbox.offsetWidth;
+            y = y / elems.colorbox.offsetHeight;
+            updateColorBoxPointer({x,y});
         }
-        if(event.type === 'mousemove' && !isDraging())return;
-        let rect = elems.colorbox.getBoundingClientRect();
-        let x = event.clientX - rect.left;
-        let y = event.clientY - rect.top;
-        x = x / elems.colorbox.offsetWidth;
-        y = y / elems.colorbox.offsetHeight;
-        updateColorBoxPointer({x,y})
-    }
-    HandlePointer = rAFThrottle(HandlePointer);
-    elems.colorbox.addEventListener('mousedown', HandlePointer);
+    });
 
-    /**
-     * View + system - Handle hue slider thumb move
-     * @param {MouseEvent} event 
-     */
-    function HandleHueSlider(event) {
-        if(event.type === 'mousedown'){
+    handleDragElement(elems.hue_slider_thumb,elems.hue_slider_track,{
+        onstart: (event) => {
             setDragging(true);
             document.documentElement.style.setProperty('cursor','ew-resize','important');
-            document.addEventListener('mousemove',HandleHueSlider);
-            document.addEventListener('mouseup', HandleHueSlider);
-        }
-        if(event.type === 'mouseup'){
+            if(event instanceof TouchEvent)document.documentElement.style.setProperty('overflow','hidden');
+        },
+        onend: (event) => {
             setDragging(false);
+            document.documentElement.style.setProperty('overflow','auto');
             document.documentElement.style.cursor = '';
-            document.removeEventListener('mousemove',HandleHueSlider);
-            document.removeEventListener('mouseup', HandleHueSlider);
+        },
+        ondefault: (event) => {
+            if(!isDraging())return false;
+            if(event instanceof TouchEvent){
+                if(!event.cancelable || event.targetTouches.length != 1)return false;
+                event.preventDefault();
+                event.stopPropagation();
+                event.clientX = event.targetTouches[0].clientX;
+                event.clientY = event.targetTouches[0].clientY;
+            }
+            let rect = elems.hue_slider_track.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            x = x / elems.hue_slider_track.offsetWidth;
+            updateHueSliderPointer(x);
         }
-        if(event.type === 'mousemove' && !isDraging())return;
-        let rect = elems.hue_slider_track.getBoundingClientRect();
-        let x = event.clientX - rect.left;
-        x = x / elems.hue_slider_track.offsetWidth;
-        updateHueSliderPointer(x);
-    }
-    HandleHueSlider = rAFThrottle(HandleHueSlider);
-    elems.hue_slider_track.addEventListener('mousedown', HandleHueSlider);
+    });
 
-    /**
-     * View + system - Handle alpha slider thumb move
-     * @param {MouseEvent} event 
-     */
-    function HandleAlphaSlider(event) {
-        if(event.type === 'mousedown'){
+    handleDragElement(elems.alpha_slider_thumb,elems.alpha_slider_track,{
+        onstart: (event) => {
             setDragging(true);
             document.documentElement.style.setProperty('cursor','ew-resize','important');
-            document.addEventListener('mousemove',HandleAlphaSlider);
-            document.addEventListener('mouseup', HandleAlphaSlider);
-        }
-        if(event.type === 'mouseup'){
+            if(event instanceof TouchEvent)document.documentElement.style.setProperty('overflow','hidden');
+        },
+        onend: (event) => {
             setDragging(false);
+            document.documentElement.style.setProperty('overflow','auto');
             document.documentElement.style.cursor = '';
-            document.removeEventListener('mousemove',HandleAlphaSlider);
-            document.removeEventListener('mouseup', HandleAlphaSlider);
+        },
+        ondefault: (event) => {
+            if(!isDraging())return false;
+            if(event instanceof TouchEvent){
+                if(!event.cancelable || event.targetTouches.length != 1)return false;
+                event.preventDefault();
+                event.stopPropagation();
+                event.clientX = event.targetTouches[0].clientX;
+                event.clientY = event.targetTouches[0].clientY;
+            }
+            let rect = elems.alpha_slider_track.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            x = x / elems.alpha_slider_track.offsetWidth;
+            updateAlphaSliderPointer(x);
         }
-        if(event.type === 'mousemove' && !isDraging())return;
-        let rect = elems.alpha_slider_track.getBoundingClientRect();
-        let x = event.clientX - rect.left;
-        x = x / elems.alpha_slider_track.offsetWidth;
-        updateAlphaSliderPointer(x);
-    }
-    HandleAlphaSlider = rAFThrottle(HandleAlphaSlider);
-    elems.alpha_slider_track.addEventListener('mousedown', HandleAlphaSlider);
-
+    });
+    
     /**
      * View + system - Handle mouse move (check if hover & note dragging)
      * @param {MouseEvent} event 
