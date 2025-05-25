@@ -16,7 +16,9 @@
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
 }
 
 @media (prefers-color-scheme: light) {
