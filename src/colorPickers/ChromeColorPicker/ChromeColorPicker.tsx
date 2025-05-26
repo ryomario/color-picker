@@ -1,9 +1,10 @@
 import React from 'react'
-import type { IColor, IColorHexValue, IColorRGBValue } from '../../types/ColorTypes'
+import type { IColor, IColorHexValue, IColorRGBValue, IHsvaColor } from '../../types/ColorTypes'
 import styles from './ChromeColorPicker.module.css'
 import type { Position } from '../../types/GeometyTypes'
 import { colorToHex, hex2rgb, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv } from '../../lib/colorLib'
 import { handleDragElement, rAFThrottle } from '../../lib/webAnimationLib'
+import SaturationValueBoxElement from '../../components/SaturationValueBox/SaturationValueBoxElement'
 
 type ChromeColorPickerProps = {
   size?: number
@@ -11,6 +12,8 @@ type ChromeColorPickerProps = {
 }
 
 type ChromeColorPickerState = {
+  hsva: IHsvaColor;
+
   colorPos: Position;
   huePos: number;
   alphaPos: number;
@@ -43,6 +46,7 @@ export class ChromeColorPicker extends React.Component<ChromeColorPickerProps, C
     super(props)
 
     this.state = {
+      hsva: { h: 0, s: 75, v: 80, a: 1 },
       colorPos: { x: 0, y: 0, },
       huePos: 1,
       alphaPos: 1,
@@ -383,7 +387,10 @@ export class ChromeColorPicker extends React.Component<ChromeColorPickerProps, C
 
   render(): React.ReactNode {
     const { size } = this.safeProps
-    const { currentColor } = this.state
+    const {
+      hsva,
+      currentColor,
+    } = this.state
     
     return (
       <div
@@ -393,9 +400,15 @@ export class ChromeColorPicker extends React.Component<ChromeColorPickerProps, C
         data-testid="ChromeColorPicker-container"
       >
         <div className={styles.box}>
-          <div ref={this.colorBoxRef} className={styles.colorbox}>
-            <div ref={this.colorBoxPointerRef} className={styles.boxpointer}></div>
-          </div>
+          <SaturationValueBoxElement
+            style={{
+              width: '100%',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+            }}
+            hsva={hsva}
+            onChange={(hsva) => this.setState({hsva})}
+          />
           
           <div className={styles.toolbox}>
             <div className={styles['toolbox-top']}>
