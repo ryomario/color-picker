@@ -61,11 +61,15 @@ const InteractiveElement = React.forwardRef<HTMLDivElement, InteractiveElementPr
   const toggleDocumentEvents = useCallback(
     (state: boolean) => {
       if (state) {
-        window.document.documentElement.style.cursor = cursorOnDrag;
+        window.document.documentElement.style.setProperty('cursor', cursorOnDrag, 'important');
+        window.document.documentElement.classList.add('force-inherit-cursor');
+        window.document.documentElement.classList.add('disable-pointer-events');
         window.addEventListener(hasTouched.current ? 'touchmove' : 'mousemove', handleMove);
         window.addEventListener(hasTouched.current ? 'touchend' : 'mouseup', handleMoveEnd);
       } else {
         window.document.documentElement.style.cursor = '';
+        window.document.documentElement.classList.remove('force-inherit-cursor');
+        window.document.documentElement.classList.remove('disable-pointer-events');
         window.removeEventListener('mousemove', handleMove);
         window.removeEventListener('mouseup', handleMoveEnd);
         window.removeEventListener('touchmove', handleMove);

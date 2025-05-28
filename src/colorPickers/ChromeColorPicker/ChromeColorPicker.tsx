@@ -195,10 +195,10 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
             {showColorPreview && (
               <AlphaElement
                 className={styles.colorpreview}
-                width={40}
-                height={40}
-                checkerSize={10}
-                style={{ borderRadius: '50%', overflow: 'hidden', color: getContrastingColor(hsva) }}
+                width={36}
+                height={36}
+                checkerSize={6}
+                style={{ border: '1px solid #aaa', borderRadius: '50%', overflow: 'hidden', color: getContrastingColor(hsva) }}
               >
                 <div className={styles['colorpreview-overlay']} style={{ backgroundColor: hsvaToHslaString(hsva)} }/>
                 <CopyTextButton className={styles['colorpreview-button-copy']} textToCopy={hexa}/>

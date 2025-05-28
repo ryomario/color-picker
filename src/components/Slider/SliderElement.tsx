@@ -98,6 +98,7 @@ const SliderElement = React.forwardRef<HTMLDivElement, SliderElementProps>((prop
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          cursor: 'crosshair',
         }}
         onMove={handleChange}
         onStart={handleChange}

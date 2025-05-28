@@ -6,6 +6,7 @@ function App() {
   return (
     <>
       <ChromeColorPicker
+        defaultColor="#56baed"
         // placement={Placement.Bottom}
         // onChange={(color) => console.log(color.hex)}
       />

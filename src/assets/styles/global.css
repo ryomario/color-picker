@@ -21,6 +21,15 @@ body {
   min-height: 100dvh;
 }
 
+.force-inherit-cursor,
+.force-inherit-cursor * {
+  cursor: inherit !important;
+}
+.disable-pointer-events,
+.disable-pointer-events * {
+  pointer-events: none;
+}
+
 /* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
