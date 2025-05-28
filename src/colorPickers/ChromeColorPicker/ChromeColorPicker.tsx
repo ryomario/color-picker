@@ -1,14 +1,43 @@
-import React from 'react'
-import type { IColor, IColorHexValue, IColorRGBValue, IHsvaColor } from '../../types/ColorTypes'
+import React, { Fragment, useCallback, useMemo, useState, type CSSProperties } from 'react'
+import type { IColor, IColorHexValue, IColorResult, IColorRGBValue, IHsvaColor } from '../../types/ColorTypes'
 import styles from './ChromeColorPicker.module.css'
-import type { Position } from '../../types/GeometyTypes'
-import { colorToHex, hex2rgb, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv } from '../../lib/colorLib'
+import { Placement, type Position } from '../../types/GeometyTypes'
+import { color as converColor, colorToHex, hex2rgb, hexToHsva, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv, hsvaToHex, hsvaToHexa, getContrastingColor, hsvaToHslaString, HUE_MAX } from '../../lib/colorLib'
 import { handleDragElement, rAFThrottle } from '../../lib/webAnimationLib'
 import SaturationValueBoxElement from '../../components/SaturationValueBox/SaturationValueBoxElement'
+import type { SwatchElementProps, SwatchRectRenderProps } from '../../components/Swatch/SwatchElement'
+import { getPlacementStyle } from '../../lib/geometyLib'
+import SwatchElement from '../../components/Swatch/SwatchElement'
+import RectElement from '../../components/Swatch/RectElement'
+import { getIsEyeDropperSupported } from '../../lib/eventLib'
+import { EyeDropper } from '../../components/EyeDropper/EyeDropper'
+import { AlphaElement } from '../../components/Alpha/AlphaELement'
+import { CopyTextButton } from '../../components/CopyTextButton'
+import SliderElement from '../../components/Slider/SliderElement'
 
-type ChromeColorPickerProps = {
+export enum ChromeColorPickerInputType {
+  HEX = 'hex',
+  RGBA = 'rgba',
+  HSLA = 'hsla'
+}
+
+export interface ChromeRectRenderProps extends SwatchRectRenderProps {
+  arrow?: React.JSX.Element;
+}
+export interface ChromeColorPickerProps extends Omit<SwatchElementProps, 'onChange' | 'color'> {
+  prefixClass?: string
+  inputType?: ChromeColorPickerInputType
+  showEditableInput?: boolean
+  showEyeDropper?: boolean
+  showColorPreview?: boolean
+  showHue?: boolean
+  showAlpha?: boolean
   size?: number
-  defaultColor?: IColor
+  placement?: Placement
+  showTriangle?: boolean
+  color?: string | IHsvaColor
+  defaultColor?: string | IHsvaColor
+  onChange?: (color: IColorResult) => void
 }
 
 type ChromeColorPickerState = {
@@ -20,433 +49,204 @@ type ChromeColorPickerState = {
   currentColor: IColorHexValue;
 }
 
-export class ChromeColorPicker extends React.Component<ChromeColorPickerProps, ChromeColorPickerState> {
-  private rootRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private colorBoxRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private colorBoxPointerRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private hueSliderTrackRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private hueSliderThumbRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private alphaSliderTrackRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private alphaSliderThumbRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private colorPreviewRef: React.RefObject<HTMLDivElement|null> = React.createRef();
-  private hexInputRef: React.RefObject<HTMLInputElement|null> = React.createRef();
+export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPickerProps>((props, ref) => {
+  const {
+    size = 300,
+    prefixClass = 'ChromeColorPicker',
+    className = '',
+    style,
+    placement = Placement.TopLeft,
+    showTriangle = true,
+    showEditableInput = true,
+    showEyeDropper = true,
+    showColorPreview = true,
+    showHue = true,
+    showAlpha = true,
+    inputType = ChromeColorPickerInputType.RGBA,
+    color,
+    defaultColor = { h: 0, s: 0, v: 0, a: 1 },
+    colors,
+    onChange,
+    rectRender,
+    rectProps,
+    ...rest
+  } = props
+
+  const isControlled = useMemo(() => {
+    if(color && !onChange) console.error(Error('ChromeColorPicker Missing "onChange" property for controlled component'))
+    return !!color && !!onChange
+  }, [color,onChange])
+
+  const [stateColor, setStateColor] = useState<string|IHsvaColor>(() => {
+    if(isControlled) return color!
+    return defaultColor
+  })
+
+  const hsva = useMemo<IHsvaColor>(
+    () => typeof stateColor === 'string'
+      ? (isValidHexColor(stateColor) ? hexToHsva(stateColor) : { h: 0, s: 0, v: 0, a: 1 })
+      : stateColor,
+    [stateColor]
+  )
+
+  const [hex, hexa] = useMemo(() => [hsvaToHex(hsva), hsvaToHexa(hsva)],[hsva])
+
+  const handleChange = useCallback(
+    (hsv: IHsvaColor) => {
+      setStateColor(hsv)
+      onChange?.(converColor(hsv))
+    },
+    [setStateColor, onChange]
+  )
   
-  private dragging: boolean = false;
-  private handleCursorThrottled: (event: MouseEvent) => void;
+  const styleWrapper = {
+    '--github-border': '1px solid rgba(0, 0, 0, 0.2)',
+    '--github-background-color': '#fff',
+    '--github-box-shadow': 'rgb(0 0 0 / 15%) 0px 3px 12px',
+    '--github-arrow-border-color': 'rgba(0, 0, 0, 0.15)',
+    width: size,
+    borderRadius: 5,
+    background: 'var(--github-background-color)',
+    boxShadow: 'var(--github-box-shadow)',
+    border: 'var(--github-border)',
+    position: 'relative',
+    padding: 0,
+    ...style,
+  } as CSSProperties
 
-  get safeProps(): Required<ChromeColorPickerProps> {
-    return {
-      size: 300,
-      defaultColor: '#0000ff',
-      ...this.props,
-    }
-  }
+  const {
+    arrBrStyl,
+    arrStyl,
+  } = getPlacementStyle(placement)
   
-  constructor(props: ChromeColorPickerProps) {
-    super(props)
-
-    this.state = {
-      hsva: { h: 0, s: 75, v: 80, a: 1 },
-      colorPos: { x: 0, y: 0, },
-      huePos: 1,
-      alphaPos: 1,
-      currentColor: colorToHex(this.safeProps.defaultColor),
-    }
-
-    this.handleCursorThrottled = rAFThrottle(this.handleCursor.bind(this))
-  }
-
-  componentDidMount() {
-    this.initDragHandlers();
-    document.addEventListener('mousemove', this.handleCursorThrottled);
-    this.setColor(this.safeProps.defaultColor);
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('mousemove', this.handleCursorThrottled);
-  }
-
-  private handleCursor(event: MouseEvent) {
-    if (!this.colorBoxRef.current || !this.hueSliderTrackRef.current || !this.alphaSliderTrackRef.current) return;
-
-    if (this.dragging) {
-      if (this.colorBoxRef.current) this.colorBoxRef.current.style.cursor = '';
-      if (this.hueSliderTrackRef.current) this.hueSliderTrackRef.current.style.cursor = '';
-      if (this.alphaSliderTrackRef.current) this.alphaSliderTrackRef.current.style.cursor = '';
-      return;
-    }
-
-    // Check color box pointer
-    const boxRect = this.colorBoxRef.current.getBoundingClientRect();
-    let x = event.clientX - boxRect.left;
-    let y = event.clientY - boxRect.top;
-
-    if (this.isOnColorBoxPointerPos(x, y)) {
-      this.colorBoxRef.current.style.cursor = 'move';
-    } else {
-      this.colorBoxRef.current.style.cursor = 'crosshair';
-    }
-
-    // Check hue slider thumb
-    const hueRect = this.hueSliderTrackRef.current.getBoundingClientRect();
-    x = event.clientX - hueRect.left;
-    y = event.clientY - hueRect.top;
-    if (this.isOnHueSliderThumbPos(x, y)) {
-      this.hueSliderTrackRef.current.style.cursor = 'ew-resize';
-    } else {
-      this.hueSliderTrackRef.current.style.cursor = 'crosshair';
-    }
-
-    // Check alpha slider thumb
-    const alphaRect = this.alphaSliderTrackRef.current.getBoundingClientRect();
-    x = event.clientX - alphaRect.left;
-    y = event.clientY - alphaRect.top;
-    if (this.isOnAlphaSliderThumbPos(x, y)) {
-      this.alphaSliderTrackRef.current.style.cursor = 'ew-resize';
-    } else {
-      this.alphaSliderTrackRef.current.style.cursor = 'crosshair';
-    }
-  }
-
-  private isOnHueSliderThumbPos(x: number, y: number): boolean {
-    if (!this.hueSliderThumbRef.current) return false;
-    const radius = this.hueSliderThumbRef.current.offsetWidth / 2;
-    return (x >= (this.hueSliderThumbRef.current.offsetLeft - radius) && 
-           x <= (this.hueSliderThumbRef.current.offsetLeft + radius));
-  }
-
-  private isOnAlphaSliderThumbPos(x: number, y: number): boolean {
-    if (!this.alphaSliderThumbRef.current) return false;
-    const radius = this.alphaSliderThumbRef.current.offsetWidth / 2;
-    return (x >= (this.alphaSliderThumbRef.current.offsetLeft - radius) && 
-           x <= (this.alphaSliderThumbRef.current.offsetLeft + radius));
-  }
-
-  private isOnColorBoxPointerPos(x: number, y: number): boolean {
-    if (!this.colorBoxPointerRef.current) return false;
-    const radius = this.colorBoxPointerRef.current.offsetWidth / 2;
-    const viewX = this.state.colorPos.x * (this.colorBoxRef.current?.offsetWidth || 0);
-    const viewY = this.state.colorPos.y * (this.colorBoxRef.current?.offsetHeight || 0);
-    return (x >= (viewX - radius) && x <= (viewX + radius)) && 
-           (y >= (viewY - radius) && y <= (viewY + radius));
-  }
-  private handleCopyResult = () => {
-    if (!this.colorPreviewRef.current || this.colorPreviewRef.current.classList.contains('copied')) return;
-
-    const rgb = this.getColorFromSelectedPointer();
-    const { alphaPos } = this.state;
-    const color = rgb2hex({ ...rgb, a: alphaPos });
-
-    this.copyText(color, (copied) => {
-      if (!copied) {
-        alert('Failed to copy!');
-        return;
-      }
-
-      if (this.colorPreviewRef.current) {
-        this.colorPreviewRef.current.classList.add('copied');
-        setTimeout(() => {
-          if (this.colorPreviewRef.current) {
-            this.colorPreviewRef.current.classList.remove('copied');
-          }
-        }, 1500);
-      }
-    });
+  const render = ({ ...props }: SwatchRectRenderProps) => {
+    const handle = rectRender && rectRender({ ...props });
+    if (handle) return handle;
+    return <RectElement {...props} rectProps={rectProps} />;
   };
 
+  const [type, setType] = useState(inputType)
 
-  private updateColorBoxPointerPosition() {
-    const { colorPos } = this.state;
-    if (!this.colorBoxRef.current || !this.colorBoxPointerRef.current) return;
-
-    const x = this.colorBoxRef.current.offsetWidth * colorPos.x;
-    const y = this.colorBoxRef.current.offsetHeight * colorPos.y;
-    this.colorBoxPointerRef.current.style.left = `${x}px`;
-    this.colorBoxPointerRef.current.style.top = `${y}px`;
-  }
-
-  private updateHueSliderPointerPosition() {
-    const { huePos } = this.state;
-    if (!this.hueSliderTrackRef.current || !this.hueSliderThumbRef.current) return;
-
-    const x = this.hueSliderTrackRef.current.offsetWidth * huePos;
-    this.hueSliderThumbRef.current.style.left = `${x}px`;
-  }
-
-  private updateAlphaSliderPointerPosition() {
-    const { alphaPos } = this.state;
-    if (!this.alphaSliderTrackRef.current || !this.alphaSliderThumbRef.current) return;
-
-    const x = this.alphaSliderTrackRef.current.offsetWidth * alphaPos;
-    this.alphaSliderThumbRef.current.style.left = `${x}px`;
-  }
-
-  private updateColorHue() {
-    const rgb = this.getColorFromSelectedHue();
-    if (this.rootRef.current) {
-      this.rootRef.current.style.setProperty('--colorhue', rgb2hex(rgb));
-    }
-  }
-
-  private updateColor() {
-    const rgb = this.getColorFromSelectedPointer();
-    const { alphaPos } = this.state;
-    const color = rgb2hex(rgb);
-    const colorWithAlpha = rgb2hex({ ...rgb, a: alphaPos });
-
-    if (this.colorBoxPointerRef.current) {
-      if (isLightColor(rgb)) {
-        this.colorBoxPointerRef.current.classList.remove('white');
-      } else {
-        this.colorBoxPointerRef.current.classList.add('white');
+  const handleClick = useCallback(
+    () => setType(oldType => {
+      if (oldType === ChromeColorPickerInputType.RGBA) {
+        return ChromeColorPickerInputType.HSLA
       }
-    }
-
-    if (this.rootRef.current) {
-      this.rootRef.current.style.setProperty('--color', color);
-      this.rootRef.current.style.setProperty('--color-with-alpha', colorWithAlpha);
-    }
-
-    this.setState({ currentColor: colorWithAlpha });
-
-    // Update hex input value
-    if (this.hexInputRef.current) {
-      this.hexInputRef.current.value = rgb2hex({ ...rgb, a: alphaPos });
-    }
-  }
-
-  private handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let hexValue = e.target.value.trim();
-    if (!isValidHexColor(hexValue)) return;
-
-    this.setColor(hexValue as IColorHexValue);
-  };
-
-  private initDragHandlers() {
-    if (!this.colorBoxRef.current || !this.colorBoxPointerRef.current) return;
-    if (!this.hueSliderTrackRef.current || !this.hueSliderThumbRef.current) return;
-    if (!this.alphaSliderTrackRef.current || !this.alphaSliderThumbRef.current) return;
-
-    // Color box drag handler
-    handleDragElement(this.colorBoxPointerRef.current, this.colorBoxRef.current, {
-      onstart: (event) => {
-        this.setDragging(true);
-        document.documentElement.style.setProperty('cursor', 'move', 'important');
-        if (event instanceof TouchEvent) document.documentElement.style.setProperty('overflow', 'hidden');
-      },
-      onend: () => {
-        this.setDragging(false);
-        document.documentElement.style.setProperty('overflow', 'auto');
-        document.documentElement.style.cursor = '';
-      },
-      ondefault: (event) => {
-        if (!this.dragging) return false;
-        const clientX = event instanceof TouchEvent ? event.targetTouches[0].clientX : event.clientX;
-        const clientY = event instanceof TouchEvent ? event.targetTouches[0].clientY : event.clientY;
-        
-        const rect = this.colorBoxRef.current?.getBoundingClientRect();
-        if (!rect) return false;
-
-        let x = (clientX - rect.left) / rect.width;
-        let y = (clientY - rect.top) / rect.height;
-        this.updateColorBoxPointer({ x, y });
-        return true;
+      if (oldType === ChromeColorPickerInputType.HSLA) {
+        return ChromeColorPickerInputType.HEX
       }
-    });
-
-    // Hue slider drag handler
-    handleDragElement(this.hueSliderThumbRef.current, this.hueSliderTrackRef.current, {
-      onstart: (event) => {
-        this.setDragging(true);
-        document.documentElement.style.setProperty('cursor', 'ew-resize', 'important');
-        if (event instanceof TouchEvent) document.documentElement.style.setProperty('overflow', 'hidden');
-      },
-      onend: () => {
-        this.setDragging(false);
-        document.documentElement.style.setProperty('overflow', 'auto');
-        document.documentElement.style.cursor = '';
-      },
-      ondefault: (event) => {
-        if (!this.dragging) return false;
-        const clientX = event instanceof TouchEvent ? event.targetTouches[0].clientX : event.clientX;
-        
-        const rect = this.hueSliderTrackRef.current?.getBoundingClientRect();
-        if (!rect) return false;
-
-        let x = (clientX - rect.left) / rect.width;
-        this.updateHueSliderPointer(x);
-        return true;
+      if (oldType === ChromeColorPickerInputType.HEX) {
+        return ChromeColorPickerInputType.RGBA
       }
-    });
+      return ChromeColorPickerInputType.RGBA
+    }),
+    [setType]
+  )
 
-    // Alpha slider drag handler
-    handleDragElement(this.alphaSliderThumbRef.current, this.alphaSliderTrackRef.current, {
-      onstart: (event) => {
-        this.setDragging(true);
-        document.documentElement.style.setProperty('cursor', 'ew-resize', 'important');
-        if (event instanceof TouchEvent) document.documentElement.style.setProperty('overflow', 'hidden');
-      },
-      onend: () => {
-        this.setDragging(false);
-        document.documentElement.style.setProperty('overflow', 'auto');
-        document.documentElement.style.cursor = '';
-      },
-      ondefault: (event) => {
-        if (!this.dragging) return false;
-        const clientX = event instanceof TouchEvent ? event.targetTouches[0].clientX : event.clientX;
-        
-        const rect = this.alphaSliderTrackRef.current?.getBoundingClientRect();
-        if (!rect) return false;
-
-        let x = (clientX - rect.left) / rect.width;
-        this.updateAlphaSliderPointer(x);
-        return true;
+  const handleClickColor = (hex: string) => {
+    let result = hexToHsva(hex);
+    handleChange({ ...result });
+  }
+  return (
+    <SwatchElement
+      ref={ref}
+      className={[prefixClass, className].filter(Boolean).join(' ')}
+      colors={colors}
+      color={hex}
+      rectRender={render}
+      {...rest}
+      onChange={handleChange}
+      style={styleWrapper}
+      rectProps={{
+        style: {
+          marginRight: 0,
+          marginBottom: 0,
+          borderRadius: 0,
+          height: 25,
+          width: 25,
+        },
+      }}
+      addonBefore={
+        <Fragment>
+          {showTriangle && (
+            <Fragment>
+              <div style={arrBrStyl} />
+              <div style={arrStyl} />
+            </Fragment>
+          )}
+        </Fragment>
       }
-    });
-  }
-
-  private setDragging(val: boolean) {
-    this.dragging = val;
-    if (this.rootRef.current) {
-      if (val) {
-        this.rootRef.current.classList.add('dragging');
-      } else {
-        this.rootRef.current.classList.remove('dragging');
-      }
-    }
-  }
-
-  private updateColorBoxPointer(pos: Position) {
-    this.setState({ colorPos: pos }, () => {
-      this.updateView();
-    });
-  }
-
-  private updateHueSliderPointer(x: number) {
-    this.setState({ huePos: x }, () => {
-      this.updateView();
-    });
-  }
-
-  private updateAlphaSliderPointer(x: number) {
-    this.setState({ alphaPos: x }, () => {
-      this.updateView();
-    });
-  }
-
-  private updateView() {
-    this.updateColorBoxPointerPosition();
-    this.updateHueSliderPointerPosition();
-    this.updateAlphaSliderPointerPosition();
-    this.updateColorHue();
-    this.updateColor();
-  }
-
-  private async copyText(text: string, callback: (copied: boolean) => void) {
-    try {
-      const result = await navigator.permissions.query({ name: 'clipboard-write' as any });
-      if (result.state !== 'prompt' && result.state !== 'granted') throw new Error('No Permission');
-      await navigator.clipboard.writeText(text);
-      callback(true);
-    } catch (error) {
-      callback(false);
-    }
-  }
-  getColorFromSelectedHue(): IColorRGBValue {
-    const { huePos } = this.state;
-    return hsv2rgb({ h: huePos, s: 1, v: 1 });
-  }
-
-  getColorFromSelectedPointer(): IColorRGBValue {
-    const { colorPos, huePos } = this.state;
-    const { x, y } = colorPos;
-    const h = huePos;
-    const s = x;
-    const v = 1 - y;
-    return hsv2rgb({ h, s, v });
-  }
-
-  setColor(color: IColor) {
-    const hexColor = colorToHex(color)
-    const rgb = hex2rgb(hexColor);
-    const { h, s, v } = rgb2hsv(rgb);
-    const a = rgb.a || 1;
-    
-    this.setState({
-      colorPos: {
-        x: s,
-        y: 1 - v
-      },
-      huePos: h,
-      alphaPos: a,
-      currentColor: hexColor
-    }, () => {
-      this.updateView();
-    });
-  }
-
-  render(): React.ReactNode {
-    const { size } = this.safeProps
-    const {
-      hsva,
-      currentColor,
-    } = this.state
-    
-    return (
-      <div
-        ref={this.rootRef}
-        className={styles.container}
-        style={{ '--size': `${size}px` } as React.CSSProperties}
-        data-testid="ChromeColorPicker-container"
-      >
-        <div className={styles.box}>
+      addonAfter={
+        <Fragment>
           <SaturationValueBoxElement
+            hsva={hsva}
+            onChange={(newColor) => {
+              handleChange({ ...hsva, ...newColor, a: hsva.a })
+            }}
             style={{
               width: '100%',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
+              height: size*2/3,
+              borderTopLeftRadius: styleWrapper.borderRadius,
+              borderTopRightRadius: styleWrapper.borderRadius,
             }}
-            hsva={hsva}
-            onChange={(hsva) => this.setState({hsva})}
           />
-          
-          <div className={styles.toolbox}>
-            <div className={styles['toolbox-top']}>
-              <div className={styles['colorpreview-container']}>
-                <div 
-                  ref={this.colorPreviewRef} 
-                  className={styles.colorpreview}
-                  onClick={this.handleCopyResult}
-                  style={{ backgroundColor: currentColor }}
-                ></div>
-              </div>
-              <div className={styles['sliders-container']}>
-                <div ref={this.hueSliderTrackRef} className={styles['hueslider-track']}>
-                  <div ref={this.hueSliderThumbRef} className={styles.boxpointer}></div>
-                </div>
-                <div ref={this.alphaSliderTrackRef} className={styles['alphaslider-track']}>
-                  <div ref={this.alphaSliderThumbRef} className={styles.boxpointer}></div>
-                </div>
-              </div>
-            </div>
-            
-            <div className={styles['toolbox-bot']}>
-              <div className={styles['result-container']}>
-                <div className={styles.inputfield} data-label="HEX">
-                  <input 
-                    ref={this.hexInputRef}
-                    type="text" 
-                    spellCheck="false" 
-                    defaultValue={currentColor}
-                    onChange={this.handleHexInputChange}
-                  />
-                </div>
-              </div>
-              <div className={styles['result-changeformat']}></div>
+          <div style={{ padding: 15, display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+            {getIsEyeDropperSupported() && showEyeDropper && <EyeDropper onPickColor={handleClickColor}/>}
+            {showColorPreview && (
+              <AlphaElement
+                className={styles.colorpreview}
+                width={40}
+                height={40}
+                checkerSize={10}
+                style={{ borderRadius: '50%', overflow: 'hidden', color: getContrastingColor(hsva) }}
+              >
+                <div className={styles['colorpreview-overlay']} style={{ backgroundColor: hsvaToHslaString(hsva)} }/>
+                <CopyTextButton className={styles['colorpreview-button-copy']} textToCopy={hexa}/>
+              </AlphaElement>
+            )}
+            <div style={{ flex: 1, marginLeft: 10 }}>
+              {showHue && (
+                <SliderElement
+                  value={hsva.h / HUE_MAX}
+                  onChange={(a_h) => {
+                    handleChange({ ...hsva, h: a_h * HUE_MAX })
+                  }}
+                  direction='horizontal'
+                  background={`linear-gradient(to right, rgb(255, 0, 0) 0%, rgb(255, 255, 0) 17%, rgb(0, 255, 0) 33%, rgb(0, 255, 255) 50%, rgb(0, 0, 255) 67%, rgb(255, 0, 255) 83%, rgb(255, 0, 0) 100%)`}
+                  width="100%"
+                  checkerSize={6}
+                  height={12}
+                  radius={3}
+                  pointerProps={{
+                    size: 15,
+                  }}
+                />
+              )}
+              {showAlpha && (
+                <SliderElement
+                  value={hsva.a}
+                  onChange={(a) => {
+                    handleChange({ ...hsva, a })
+                  }}
+                  direction='horizontal'
+                  background={`linear-gradient(to right, rgba(0,0,0,0) 0%, ${hex} 100%)`}
+                  width="100%"
+                  checkerSize={6}
+                  height={12}
+                  style={{ marginTop: 10 }}
+                  radius={3}
+                  pointerProps={{
+                    size: 15,
+                  }}
+                  enableAlphaBg
+                />
+              )}
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-}
+        </Fragment>
+      }
+    />
+  );
+})
+
+ChromeColorPicker.displayName = 'ChromeColorPicker'

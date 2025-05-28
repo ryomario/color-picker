@@ -28,3 +28,7 @@ export const getRelativePosition = (node: HTMLDivElement, event: MouseEvent | To
     y: pointer.pageY - (rect.top + window.pageYOffset),
   };
 };
+
+export function getIsEyeDropperSupported() {
+  return 'EyeDropper' in window;
+}

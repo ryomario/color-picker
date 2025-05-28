@@ -8,24 +8,28 @@ export interface PointerElementProps extends React.HTMLAttributes<HTMLDivElement
   top?: string;
   left: string;
   hsva: IHsvaColor;
-  size?: number
+  size?: number;
+  cursor?: React.CSSProperties['cursor'];
 }
 
-export const PointerElement = ({ className, hsva, left, top, prefixClass = 'PointerElement', size = 16, }: PointerElementProps): JSX.Element => {
+export const PointerElement = ({ className, hsva, left, top, prefixClass = 'PointerElement', size = 16, cursor = 'move' }: PointerElementProps): JSX.Element => {
   const style: CSSProperties = {
     position: 'absolute',
     top,
     left,
+    width: 0,
+    height: 0,
   };
 
   const stylePointer = {
     width: size,
     height: size,
     transform: 'translate(-50%, -50%)',
-    boxShadow: `${getContrastingColor(hsva)} 0px 0px 0px 1.5px, rgb(0 0 0 / 30%) 0px 0px 1px 1px inset, rgb(0 0 0 / 40%) 0px 0px 1px 2px`,
+    border: `2px solid ${getContrastingColor(hsva)}`,
+    boxShadow: `${Math.ceil(size/20)}px ${Math.ceil(size/20)}px ${Math.ceil(size/5)}px rgba(0 0 0 / 50%)`,
     borderRadius: '50%',
     backgroundColor: hsvaToHex(hsva),
-    cursor: 'move'
+    cursor,
   } as CSSProperties;
 
   return useMemo(

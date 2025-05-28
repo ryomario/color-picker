@@ -42,3 +42,14 @@ export interface IHslaColor extends IHslColor {
 export interface IRgbaColor extends IRgbColor {
   a: number
 }
+
+export type IColorResult = {
+  rgb: IRgbColor;
+  hsl: IHslColor;
+  hsv: IHsvColor;
+  rgba: IRgbaColor;
+  hsla: IHslaColor;
+  hsva: IHsvaColor;
+  hex: string;
+  hexa: string;
+}

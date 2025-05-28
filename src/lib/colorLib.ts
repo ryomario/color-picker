@@ -1,7 +1,8 @@
-import type { IColor, IColorHexValue, IColorHSVValue, IColorRGBValue, IHslaColor, IHslColor, IHsvaColor, IHsvColor, IObjectColor, IRgbaColor, IRgbColor } from "../types/ColorTypes";
+import type { IColor, IColorHexValue, IColorHSVValue, IColorResult, IColorRGBValue, IHslaColor, IHslColor, IHsvaColor, IHsvColor, IObjectColor, IRgbaColor, IRgbColor } from "../types/ColorTypes";
 
 const RGB_MAX = 255
 const SV_MAX = 100
+export const HUE_MAX = 360
 
 export function decToHex(num: number): string {
   if(isNaN(num)) num = 0
@@ -181,7 +182,7 @@ export const rgbToHex = ({ r, g, b }: IRgbColor): string => {
 };
 
 export const rgbaToHexa = ({ r, g, b, a }: IRgbaColor): string => {
-  const alpha = typeof a === 'number' && ((a * 255) | (1 << 8)).toString(16).slice(1);
+  const alpha = typeof a === 'number' && a < 1 && ((a * 255) | (1 << 8)).toString(16).slice(1);
   return `${rgbToHex({ r, g, b })}${alpha ? alpha : ''}`;
 };
 
@@ -256,7 +257,7 @@ export const hsvaToRgba = ({ h, s, v, a }: IHsvaColor): IRgbaColor => {
   return { ...rgba, a };
 };
 
-export const color = (str: string | IHsvaColor) => {
+export const color = (str: string | IHsvaColor): IColorResult => {
   let rgb!: IRgbColor;
   let hsl!: IHslColor;
   let hsv!: IHsvColor;

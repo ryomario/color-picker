@@ -1,0 +1,27 @@
+button.eye-dropper {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  width: 2em;
+  height: 2em;
+  padding: 0.5em;
+  border-radius: 50%;
+
+  transition: background-color 100ms;
+}
+button.eye-dropper:hover,
+button.eye-dropper:focus-within {
+  background-color: rgb(220,220,220);
+}
+button.eye-dropper:focus-within {
+  color: #56baed;
+}
