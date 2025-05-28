@@ -12,7 +12,7 @@ export interface SwatchRectRenderProps extends React.HTMLAttributes<HTMLDivEleme
   onClick: (evn: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 }
 
-export interface SwatchElementProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'color' | 'title'> {
+export interface SwatchElementProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'color' | 'title'>, React.PropsWithChildren {
   prefixClass?: string;
   color?: string;
   colors?: SwatchPresetColor[];
@@ -35,6 +35,7 @@ const SwatchElement = React.forwardRef<HTMLDivElement, SwatchElementProps>((prop
     addonAfter,
     addonBefore,
     rectRender,
+    children,
     ...rest
   } = props
 
@@ -68,6 +69,7 @@ const SwatchElement = React.forwardRef<HTMLDivElement, SwatchElementProps>((prop
       }}
     >
       {addonBefore && React.isValidElement(addonBefore) && addonBefore}
+      {children}
       {colors &&
         Array.isArray(colors) &&
         colors.map((item, idx) => {

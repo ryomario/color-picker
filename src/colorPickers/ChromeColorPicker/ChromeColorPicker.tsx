@@ -5,7 +5,7 @@ import { Placement, type Position } from '../../types/GeometyTypes'
 import { color as converColor, colorToHex, hex2rgb, hexToHsva, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv, hsvaToHex, hsvaToHexa, getContrastingColor, hsvaToHslaString, HUE_MAX } from '../../lib/colorLib'
 import { handleDragElement, rAFThrottle } from '../../lib/webAnimationLib'
 import SaturationValueBoxElement from '../../components/SaturationValueBox/SaturationValueBoxElement'
-import type { SwatchElementProps, SwatchRectRenderProps } from '../../components/Swatch/SwatchElement'
+import type { SwatchElementProps, SwatchPresetColor, SwatchRectRenderProps } from '../../components/Swatch/SwatchElement'
 import { getPlacementStyle } from '../../lib/geometyLib'
 import SwatchElement from '../../components/Swatch/SwatchElement'
 import RectElement from '../../components/Swatch/RectElement'
@@ -21,10 +21,33 @@ export enum ChromeColorPickerInputType {
   HSLA = 'hsla'
 }
 
+const PRESET_COLORS = [
+  '#f44336',
+  '#e91e63',
+  '#9c27b0',
+  '#4527a0',
+  '#3f51b5',
+  '#2196f3',
+  '#03a9f4',
+  '#00bcd4',
+  '#009688',
+  '#4caf50',
+  '#8bc34a',
+  '#cddc39',
+  '#ffeb3b',
+  '#ffc107',
+  '#ff9800',
+  '#ff5722',
+  '#795548',
+  '#9e9e9e',
+  '#607d8b',
+  '#ffffff',
+];
+
 export interface ChromeRectRenderProps extends SwatchRectRenderProps {
   arrow?: React.JSX.Element;
 }
-export interface ChromeColorPickerProps extends Omit<SwatchElementProps, 'onChange' | 'color'> {
+export interface ChromeColorPickerProps extends Omit<SwatchElementProps, 'onChange' | 'color' | 'colors'> {
   prefixClass?: string
   inputType?: ChromeColorPickerInputType
   showEditableInput?: boolean
@@ -36,17 +59,9 @@ export interface ChromeColorPickerProps extends Omit<SwatchElementProps, 'onChan
   placement?: Placement
   showTriangle?: boolean
   color?: string | IHsvaColor
+  presetColors?: false | SwatchPresetColor[]
   defaultColor?: string | IHsvaColor
   onChange?: (color: IColorResult) => void
-}
-
-type ChromeColorPickerState = {
-  hsva: IHsvaColor;
-
-  colorPos: Position;
-  huePos: number;
-  alphaPos: number;
-  currentColor: IColorHexValue;
 }
 
 export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPickerProps>((props, ref) => {
@@ -65,7 +80,7 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
     inputType = ChromeColorPickerInputType.RGBA,
     color,
     defaultColor = { h: 0, s: 0, v: 0, a: 1 },
-    colors,
+    presetColors = PRESET_COLORS,
     onChange,
     rectRender,
     rectProps,
@@ -119,10 +134,10 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
     arrStyl,
   } = getPlacementStyle(placement)
   
-  const render = ({ ...props }: SwatchRectRenderProps) => {
+  const renderPresetRect = ({ ...props }: SwatchRectRenderProps) => {
     const handle = rectRender && rectRender({ ...props });
     if (handle) return handle;
-    return <RectElement {...props} rectProps={rectProps} />;
+    return <RectElement {...props} rectProps={{ style: props.style }}/>;
   };
 
   const [type, setType] = useState(inputType)
@@ -151,19 +166,19 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
     <SwatchElement
       ref={ref}
       className={[prefixClass, className].filter(Boolean).join(' ')}
-      colors={colors}
+      colors={!presetColors ? undefined : presetColors}
       color={hex}
-      rectRender={render}
+      rectRender={renderPresetRect}
       {...rest}
       onChange={handleChange}
       style={styleWrapper}
       rectProps={{
         style: {
-          marginRight: 0,
-          marginBottom: 0,
-          borderRadius: 0,
-          height: 25,
-          width: 25,
+          margin: 5,
+          borderRadius: 5,
+          height: (size - 5 * 10 * 2) / 10,
+          width: (size - 5 * 10 * 2) / 10,
+          border: '1px solid rgb(220,220,220)',
         },
       }}
       addonBefore={
@@ -176,76 +191,78 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
           )}
         </Fragment>
       }
-      addonAfter={
-        <Fragment>
-          <SaturationValueBoxElement
-            hsva={hsva}
-            onChange={(newColor) => {
-              handleChange({ ...hsva, ...newColor, a: hsva.a })
-            }}
-            style={{
-              width: '100%',
-              height: size*2/3,
-              borderTopLeftRadius: styleWrapper.borderRadius,
-              borderTopRightRadius: styleWrapper.borderRadius,
-            }}
-          />
-          <div style={{ padding: 15, display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            {getIsEyeDropperSupported() && showEyeDropper && <EyeDropper onPickColor={handleClickColor}/>}
-            {showColorPreview && (
-              <AlphaElement
-                className={styles.colorpreview}
-                width={36}
-                height={36}
+    >
+      <Fragment>
+        <SaturationValueBoxElement
+          hsva={hsva}
+          onChange={(newColor) => {
+            handleChange({ ...hsva, ...newColor, a: hsva.a })
+          }}
+          style={{
+            width: '100%',
+            height: size*2/3,
+            borderTopLeftRadius: styleWrapper.borderRadius,
+            borderTopRightRadius: styleWrapper.borderRadius,
+          }}
+        />
+        <div style={{ padding: 15, display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+          {getIsEyeDropperSupported() && showEyeDropper && <EyeDropper onPickColor={handleClickColor}/>}
+          {showColorPreview && (
+            <AlphaElement
+              className={styles.colorpreview}
+              width={36}
+              height={36}
+              checkerSize={6}
+              style={{ border: '1px solid #aaa', borderRadius: '50%', overflow: 'hidden', color: getContrastingColor(hsva) }}
+            >
+              <div className={styles['colorpreview-overlay']} style={{ backgroundColor: hsvaToHslaString(hsva)} }/>
+              <CopyTextButton className={styles['colorpreview-button-copy']} textToCopy={hexa}/>
+            </AlphaElement>
+          )}
+          <div style={{ flex: 1, marginLeft: 10 }}>
+            {showHue && (
+              <SliderElement
+                value={hsva.h / HUE_MAX}
+                onChange={(a_h) => {
+                  handleChange({ ...hsva, h: a_h * HUE_MAX })
+                }}
+                direction='horizontal'
+                background={`linear-gradient(to right, rgb(255, 0, 0) 0%, rgb(255, 255, 0) 17%, rgb(0, 255, 0) 33%, rgb(0, 255, 255) 50%, rgb(0, 0, 255) 67%, rgb(255, 0, 255) 83%, rgb(255, 0, 0) 100%)`}
+                width="100%"
                 checkerSize={6}
-                style={{ border: '1px solid #aaa', borderRadius: '50%', overflow: 'hidden', color: getContrastingColor(hsva) }}
-              >
-                <div className={styles['colorpreview-overlay']} style={{ backgroundColor: hsvaToHslaString(hsva)} }/>
-                <CopyTextButton className={styles['colorpreview-button-copy']} textToCopy={hexa}/>
-              </AlphaElement>
+                height={12}
+                radius={3}
+                pointerProps={{
+                  size: 15,
+                }}
+              />
             )}
-            <div style={{ flex: 1, marginLeft: 10 }}>
-              {showHue && (
-                <SliderElement
-                  value={hsva.h / HUE_MAX}
-                  onChange={(a_h) => {
-                    handleChange({ ...hsva, h: a_h * HUE_MAX })
-                  }}
-                  direction='horizontal'
-                  background={`linear-gradient(to right, rgb(255, 0, 0) 0%, rgb(255, 255, 0) 17%, rgb(0, 255, 0) 33%, rgb(0, 255, 255) 50%, rgb(0, 0, 255) 67%, rgb(255, 0, 255) 83%, rgb(255, 0, 0) 100%)`}
-                  width="100%"
-                  checkerSize={6}
-                  height={12}
-                  radius={3}
-                  pointerProps={{
-                    size: 15,
-                  }}
-                />
-              )}
-              {showAlpha && (
-                <SliderElement
-                  value={hsva.a}
-                  onChange={(a) => {
-                    handleChange({ ...hsva, a })
-                  }}
-                  direction='horizontal'
-                  background={`linear-gradient(to right, rgba(0,0,0,0) 0%, ${hex} 100%)`}
-                  width="100%"
-                  checkerSize={6}
-                  height={12}
-                  style={{ marginTop: 10 }}
-                  radius={3}
-                  pointerProps={{
-                    size: 15,
-                  }}
-                  enableAlphaBg
-                />
-              )}
-            </div>
+            {showAlpha && (
+              <SliderElement
+                value={hsva.a}
+                onChange={(a) => {
+                  handleChange({ ...hsva, a })
+                }}
+                direction='horizontal'
+                background={`linear-gradient(to right, rgba(0,0,0,0) 0%, ${hex} 100%)`}
+                width="100%"
+                checkerSize={6}
+                height={12}
+                style={{ marginTop: 10 }}
+                radius={3}
+                pointerProps={{
+                  size: 15,
+                }}
+                enableAlphaBg
+              />
+            )}
           </div>
-        </Fragment>
-      }
-    />
+        </div>
+        {!!presetColors && presetColors.length > 0 && (
+          <div style={{ width: '100%', borderTop: '1px solid rgb(238, 238, 238)', marginBottom: 10}}/>
+        )}
+      </Fragment>
+    </SwatchElement>
   );
 })
 
