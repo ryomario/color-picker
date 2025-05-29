@@ -1,0 +1,13 @@
+.arrow-btn {
+  cursor: pointer;
+  transition: background-color 300ms;
+  border-radius: 2px;
+
+  background-color: transparent;
+}
+.arrow-btn:hover {
+  background-color: #d3d3d3;
+}
+.arrow-btn svg {
+  display: block;
+}

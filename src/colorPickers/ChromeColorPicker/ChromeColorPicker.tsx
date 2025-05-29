@@ -1,9 +1,8 @@
 import React, { Fragment, useCallback, useMemo, useState, type CSSProperties } from 'react'
-import type { IColor, IColorHexValue, IColorResult, IColorRGBValue, IHsvaColor } from '../../types/ColorTypes'
+import type { IColorResult, IHsvaColor } from '../../types/ColorTypes'
 import styles from './ChromeColorPicker.module.css'
-import { Placement, type Position } from '../../types/GeometyTypes'
-import { color as converColor, colorToHex, hex2rgb, hexToHsva, hsv2rgb, isLightColor, isValidHexColor, rgb2hex, rgb2hsv, hsvaToHex, hsvaToHexa, getContrastingColor, hsvaToHslaString, HUE_MAX } from '../../lib/colorLib'
-import { handleDragElement, rAFThrottle } from '../../lib/webAnimationLib'
+import { Placement } from '../../types/GeometyTypes'
+import { color as converColor, hexToHsva, isValidHexColor, hsvaToHex, hsvaToHexa, getContrastingColor, hsvaToHslaString, HUE_MAX } from '../../lib/colorLib'
 import SaturationValueBoxElement from '../../components/SaturationValueBox/SaturationValueBoxElement'
 import type { SwatchElementProps, SwatchPresetColor, SwatchRectRenderProps } from '../../components/Swatch/SwatchElement'
 import { getPlacementStyle } from '../../lib/geometyLib'
@@ -14,6 +13,10 @@ import { EyeDropper } from '../../components/EyeDropper/EyeDropper'
 import { AlphaElement } from '../../components/Alpha/AlphaELement'
 import { CopyTextButton } from '../../components/CopyTextButton'
 import SliderElement from '../../components/Slider/SliderElement'
+import Arrow from '../../components/Arrow/Arrow'
+import InputElement from '../../components/inputs/InputElement'
+import InputRGBAElement from '../../components/inputs/InputRGBA/InputRGBAElement'
+import InputHSLAElement from '../../components/inputs/InputHSLA/InputHSLAElement'
 
 export enum ChromeColorPickerInputType {
   HEX = 'hex',
@@ -142,7 +145,10 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
 
   const [type, setType] = useState(inputType)
 
-  const handleClick = useCallback(
+  const labelStyle: React.CSSProperties = { paddingTop: 6 };
+
+
+  const handleClickArrow = useCallback(
     () => setType(oldType => {
       if (oldType === ChromeColorPickerInputType.RGBA) {
         return ChromeColorPickerInputType.HSLA
@@ -258,6 +264,45 @@ export const ChromeColorPicker = React.forwardRef<HTMLDivElement, ChromeColorPic
             )}
           </div>
         </div>
+        {showEditableInput && (
+          <div style={{ display: 'flex', alignItems: 'center', padding: '0 15px 15px 15px', userSelect: 'none', width: '100%' }}>
+            <div style={{ flex: 1, marginRight: 10 }}>
+              {type === ChromeColorPickerInputType.HEX && (
+                <InputElement
+                  label="HEX"
+                  labelStyle={labelStyle}
+                  value={hsva.a >= 0 && hsva.a < 1 ? hsvaToHexa(hsva).toLocaleUpperCase() : hsvaToHex(hsva).toLocaleUpperCase()}
+                  onChange={(_, value) => {
+                    if (typeof value === 'string') {
+                      handleChange(hexToHsva(/^#/.test(value) ? value : `#${value}`));
+                    }
+                  }}
+                />
+              )}
+              {type === ChromeColorPickerInputType.RGBA && (
+                <InputRGBAElement
+                  hsva={hsva}
+                  onChange={(reColor) => handleChange(reColor.hsva)}
+                  rProps={{ labelStyle }}
+                  gProps={{ labelStyle }}
+                  bProps={{ labelStyle }}
+                  aProps={!showAlpha ? false : { labelStyle }}
+                />
+              )}
+              {type === ChromeColorPickerInputType.HSLA && (
+                <InputHSLAElement
+                  hsva={hsva}
+                  onChange={(reColor) => handleChange(reColor.hsva)}
+                  hProps={{ labelStyle }}
+                  sProps={{ labelStyle }}
+                  lProps={{ labelStyle }}
+                  aProps={!showAlpha ? false : { labelStyle }}
+                />
+              )}
+            </div>
+            <Arrow onClick={handleClickArrow}/>
+          </div>
+        )}
         {!!presetColors && presetColors.length > 0 && (
           <div style={{ width: '100%', borderTop: '1px solid rgb(238, 238, 238)', marginBottom: 10}}/>
         )}

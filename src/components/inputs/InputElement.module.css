@@ -1,0 +1,27 @@
+.input-wrapper {
+  --input-label-color: rgb(153, 153, 153);
+  --input-border-color: rgb(204 204 204);
+  --input-box-shadow: var(--input-border-color) 0px 0px 0px 1px inset;
+  --input-color: #666;
+  position: relative;
+  align-items: center;
+  display: flex;
+  font-size: 11px;
+}
+
+.input-wrapper .input-editable {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  padding: 0.75em 1em;
+  background-color: transparent;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 3px;
+  color: var(--input-color);
+  box-shadow: var(--input-border-color) 0px 0px 0px 1px inset;
+  outline: none;
+}
+.input-wrapper .input-editable:focus {
+  --input-border-color: #56baed;
+}

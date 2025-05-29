@@ -1,4 +1,4 @@
-import { ChromeColorPicker } from './colorPickers/ChromeColorPicker/ChromeColorPicker'
+import { ChromeColorPicker, ChromeColorPickerInputType } from './colorPickers/ChromeColorPicker/ChromeColorPicker'
 import { Placement } from './types/GeometyTypes'
 
 function App() {
@@ -9,6 +9,8 @@ function App() {
         defaultColor="#56baed"
         // placement={Placement.Bottom}
         // onChange={(color) => console.log(color.hex)}
+        // presetColors={false}
+        // inputType={ChromeColorPickerInputType.HEX}
       />
     </>
   )
